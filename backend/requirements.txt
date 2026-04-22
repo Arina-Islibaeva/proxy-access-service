@@ -1,0 +1,8 @@
+Django>=5.0
+djangorestframework
+psycopg[binary]
+python-dotenv
+drf-spectacular
+channels[daphne]
+celery
+redis
