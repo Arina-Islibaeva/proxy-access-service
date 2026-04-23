@@ -1,3 +1,6 @@
+from datetime import timedelta
+import secrets
+
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
@@ -11,8 +14,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
-    activation_key = models.CharField(max_length=64, null=True, blank=True)
-    activation_key_expires = models.DateTimeField(null=True, blank=True)
+    activation_key = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+    )
+    activation_key_expires = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -21,6 +31,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
+
+    def generate_activation_key(self):
+        self.activation_key = secrets.token_hex(16)
+        self.activation_key_expires = (
+            timezone.now() + timedelta(hours=24)
+        )
+        self.is_active = True
+        self.save()
 
     def __str__(self):
         return self.email

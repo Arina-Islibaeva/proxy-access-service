@@ -2,22 +2,24 @@ from django.contrib import admin
 from django.urls import path
 from drf_spectacular.views import (
     SpectacularAPIView,
-    SpectacularSwaggerView,
     SpectacularRedocView,
+    SpectacularSwaggerView,
 )
 
 from core.views import HealthCheckView
+from users.views import ActivateKeyView
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
 
     path("api/health/", HealthCheckView.as_view()),
+    path("api/activate-key/", ActivateKeyView.as_view()),
 
     path(
         "api/schema/",
         SpectacularAPIView.as_view(),
-        name="schema"
+        name="schema",
     ),
     path(
         "api/docs/swagger/",
@@ -25,6 +27,6 @@ urlpatterns = [
     ),
     path(
         "api/docs/redoc/",
-        SpectacularRedocView.as_view(url_name="schema")
+        SpectacularRedocView.as_view(url_name="schema"),
     ),
 ]
