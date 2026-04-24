@@ -11,7 +11,48 @@ from .serializers import (
     ActivateKeySuccessSerializer,
     ActivationKeySerializer,
     ErrorResponseSerializer,
+    RegisterSerializer,
 )
+from .tasks import send_activation_key_email
+
+
+class RegisterView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    @extend_schema(
+        request=RegisterSerializer,
+        responses={
+            201: OpenApiResponse(
+                description="Пользователь успешно зарегистрирован.",
+            ),
+            400: OpenApiResponse(
+                response=ErrorResponseSerializer,
+                description="Ошибка валидации данных.",
+            ),
+        },
+    )
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.create_user(
+            email=serializer.validated_data["email"],
+            password=serializer.validated_data["password"],
+        )
+        user.generate_activation_key()
+
+        send_activation_key_email.delay(
+            user.email,
+            user.activation_key,
+        )
+
+        return Response(
+            {
+                "message": "Письмо с ключом отправлено на почту.",
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class ActivateKeyView(APIView):

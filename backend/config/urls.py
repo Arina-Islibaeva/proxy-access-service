@@ -7,13 +7,14 @@ from drf_spectacular.views import (
 )
 
 from core.views import HealthCheckView
-from users.views import ActivateKeyView
+from users.views import ActivateKeyView, RegisterView
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
 
     path("api/health/", HealthCheckView.as_view()),
+    path("api/register/", RegisterView.as_view()),
     path("api/activate-key/", ActivateKeyView.as_view()),
 
     path(

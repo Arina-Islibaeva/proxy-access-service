@@ -10,6 +10,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7
+    container_name: proxy_redis
+    restart: always
+
   backend:
     build: .
     container_name: proxy_backend
@@ -22,6 +27,19 @@ services:
       - ./backend/.env
     depends_on:
       - db
+      - redis
+
+  celery:
+    build: .
+    container_name: proxy_celery
+    command: celery -A config worker --loglevel=info
+    volumes:
+      - ./backend:/app/backend
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+      - redis
 
 volumes:
   postgres_data:
