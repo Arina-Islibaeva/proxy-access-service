@@ -41,3 +41,32 @@ class RegisterSerializer(serializers.Serializer):
             )
 
         return attrs
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+
+class ProfileSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    is_active = serializers.BooleanField()
+    activation_key = serializers.CharField(allow_null=True)
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {
+                    "new_password_confirm": (
+                        "Новые пароли не совпадают."
+                    )
+                }
+            )
+
+        return attrs
