@@ -106,6 +106,28 @@ class ActivateKeyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        existing_vm = VirtualMachine.objects.filter(
+            current_user=user,
+            is_active=True,
+        ).first()
+
+        if existing_vm:
+            user.activation_key = None
+            user.activation_key_expires = None
+            user.save()
+
+            return Response(
+                {
+                    "message": "Прокси уже назначен.",
+                    "proxy": {
+                        "host": existing_vm.host,
+                        "port": existing_vm.port,
+                        "protocol": existing_vm.protocol,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
         vm = VirtualMachine.objects.filter(
             current_user__isnull=True,
             is_active=True,
