@@ -27,7 +27,7 @@
                     color="primary"
                     prepend-inner-icon="mdi-lock"
                     :append-inner-icon="
-                        showPassword ? 'mdi-eye-off' : 'mdi-eye'
+                        showPassword ? 'mdi-eye' : 'mdi-eye-off'
                     "
                     @click:append-inner="
                         showPassword = !showPassword

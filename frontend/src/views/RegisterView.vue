@@ -26,7 +26,7 @@
                     variant="outlined"
                     color="primary"
                     prepend-inner-icon="mdi-lock"
-                    :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                    :append-inner-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
                     @click:append-inner="showPassword = !showPassword"
                 />
 
@@ -37,8 +37,12 @@
                     variant="outlined"
                     color="primary"
                     prepend-inner-icon="mdi-lock-check"
-                    :append-inner-icon="showPasswordConfirm ? 'mdi-eye-off' : 'mdi-eye'"
-                    @click:append-inner="showPasswordConfirm = !showPasswordConfirm"
+                    :append-inner-icon="
+                        showPasswordConfirm ? 'mdi-eye' : 'mdi-eye-off'
+                    "
+                    @click:append-inner="
+                        showPasswordConfirm = !showPasswordConfirm
+                    "
                 />
 
                 <v-alert

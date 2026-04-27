@@ -9,22 +9,21 @@
                 Управление ключом доступа и паролем
             </v-card-subtitle>
 
-            <v-alert
-                v-if="message"
-                type="success"
-                variant="tonal"
-                class="mb-4"
-            >
+            <v-alert v-if="message" type="success" variant="tonal" class="mb-4">
                 {{ message }}
             </v-alert>
 
+            <v-alert v-if="error" type="error" variant="tonal" class="mb-4">
+                {{ error }}
+            </v-alert>
+
             <v-alert
-                v-if="error"
-                type="error"
+                v-if="connectionStatus"
+                :type="connectionStatusType"
                 variant="tonal"
                 class="mb-4"
             >
-                {{ error }}
+                {{ connectionStatus }}
             </v-alert>
 
             <v-list class="mb-4">
@@ -33,7 +32,9 @@
                         <v-icon color="primary">mdi-email</v-icon>
                     </template>
                     <v-list-item-title>Email</v-list-item-title>
-                    <v-list-item-subtitle>{{ profile.email }}</v-list-item-subtitle>
+                    <v-list-item-subtitle>
+                        {{ profile.email }}
+                    </v-list-item-subtitle>
                 </v-list-item>
 
                 <v-list-item>
@@ -50,9 +51,19 @@
                     <template #prepend>
                         <v-icon color="primary">mdi-check-circle</v-icon>
                     </template>
-                    <v-list-item-title>Статус</v-list-item-title>
+                    <v-list-item-title>Статус аккаунта</v-list-item-title>
                     <v-list-item-subtitle>
                         {{ profile.is_active ? "Активен" : "Не активен" }}
+                    </v-list-item-subtitle>
+                </v-list-item>
+
+                <v-list-item>
+                    <template #prepend>
+                        <v-icon color="primary">mdi-lan-connect</v-icon>
+                    </template>
+                    <v-list-item-title>Статус подключения</v-list-item-title>
+                    <v-list-item-subtitle>
+                        {{ currentSocketStatus }}
                     </v-list-item-subtitle>
                 </v-list-item>
             </v-list>
@@ -68,7 +79,9 @@
                 Обновить ключ
             </v-btn>
 
+            <!-- СКРЫВАЕМ если уже подключен -->
             <v-btn
+                v-if="socketStatus !== 'connected'"
                 color="primary"
                 variant="outlined"
                 block
@@ -80,11 +93,7 @@
                 Подключиться к прокси
             </v-btn>
 
-            <v-card
-                v-if="proxy"
-                class="proxy-card mb-6"
-                elevation="0"
-            >
+            <v-card v-if="proxy" class="proxy-card mb-6" elevation="0">
                 <div class="text-subtitle-1 font-weight-bold mb-2">
                     Данные прокси
                 </div>
@@ -108,7 +117,7 @@
                     variant="outlined"
                     color="primary"
                     prepend-inner-icon="mdi-lock"
-                    :append-inner-icon="showOldPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                    :append-inner-icon="showOldPassword ? 'mdi-eye' : 'mdi-eye-off'"
                     @click:append-inner="showOldPassword = !showOldPassword"
                 />
 
@@ -119,7 +128,7 @@
                     variant="outlined"
                     color="primary"
                     prepend-inner-icon="mdi-lock-reset"
-                    :append-inner-icon="showNewPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                    :append-inner-icon="showNewPassword ? 'mdi-eye' : 'mdi-eye-off'"
                     @click:append-inner="showNewPassword = !showNewPassword"
                 />
 
@@ -130,12 +139,8 @@
                     variant="outlined"
                     color="primary"
                     prepend-inner-icon="mdi-lock-check"
-                    :append-inner-icon="
-                        showNewPasswordConfirm ? 'mdi-eye-off' : 'mdi-eye'
-                    "
-                    @click:append-inner="
-                        showNewPasswordConfirm = !showNewPasswordConfirm
-                    "
+                    :append-inner-icon="showNewPasswordConfirm ? 'mdi-eye' : 'mdi-eye-off'"
+                    @click:append-inner="showNewPasswordConfirm = !showNewPasswordConfirm"
                 />
 
                 <v-btn
@@ -154,8 +159,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from "vue";
-
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import apiClient from "../api/client";
 
 const profile = reactive({
@@ -173,6 +177,10 @@ const passwordForm = reactive({
 const proxy = ref(null);
 const message = ref("");
 const error = ref("");
+const connectionStatus = ref("");
+const socketStatus = ref("disconnected");
+const socket = ref(null);
+
 const refreshLoading = ref(false);
 const connectLoading = ref(false);
 const passwordLoading = ref(false);
@@ -181,39 +189,52 @@ const showOldPassword = ref(false);
 const showNewPassword = ref(false);
 const showNewPasswordConfirm = ref(false);
 
-async function loadProfile() {
-    message.value = "";
-    error.value = "";
+const currentSocketStatus = computed(() => {
+    const statuses = {
+        connected: "Подключено",
+        disconnected: "Отключено",
+        no_free_vms: "Нет свободных прокси",
+        error: "Ошибка подключения",
+        waiting: "Ожидание",
+    };
+    return statuses[socketStatus.value] || "Ожидание";
+});
 
+const connectionStatusType = computed(() => {
+    if (socketStatus.value === "connected") return "success";
+    if (socketStatus.value === "no_free_vms" || socketStatus.value === "error")
+        return "error";
+    return "info";
+});
+
+async function loadProfile() {
     try {
         const response = await apiClient.get("/profile/");
-
         profile.email = response.data.email;
         profile.is_active = response.data.is_active;
         profile.activation_key = response.data.activation_key;
     } catch (err) {
-        error.value =
-            err.response?.data?.detail ||
-            "Не удалось загрузить данные профиля.";
+        error.value = err.response?.data?.detail || "Ошибка загрузки профиля";
     }
+}
+
+function connectWebSocket() {
+    socket.value = new WebSocket("ws://localhost:8000/ws/status/");
+
+    socket.value.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        socketStatus.value = data.status;
+        connectionStatus.value = data.message;
+        if (data.proxy) proxy.value = data.proxy;
+    };
 }
 
 async function refreshKey() {
     refreshLoading.value = true;
-    message.value = "";
-    error.value = "";
-    proxy.value = null;
-
     try {
-        const response = await apiClient.post("/refresh-key/", {});
-
-        message.value = response.data.message;
-
+        const res = await apiClient.post("/refresh-key/");
+        message.value = res.data.message;
         await loadProfile();
-    } catch (err) {
-        error.value =
-            err.response?.data?.detail ||
-            "Не удалось обновить ключ.";
     } finally {
         refreshLoading.value = false;
     }
@@ -221,29 +242,24 @@ async function refreshKey() {
 
 async function connectProxy() {
     connectLoading.value = true;
-    message.value = "";
-    error.value = "";
-    proxy.value = null;
 
     if (!profile.activation_key) {
-        error.value = "Ключ активации отсутствует.";
+        error.value = "Ключ отсутствует";
         connectLoading.value = false;
         return;
     }
 
     try {
-        const response = await apiClient.post("/activate-key/", {
+        const res = await apiClient.post("/activate-key/", {
             activation_key: profile.activation_key,
         });
 
-        message.value = response.data.message;
-        proxy.value = response.data.proxy;
+        message.value = res.data.message;
+        proxy.value = res.data.proxy;
 
         await loadProfile();
     } catch (err) {
-        error.value =
-            err.response?.data?.detail ||
-            "Не удалось подключиться к прокси.";
+        error.value = err.response?.data?.detail;
     } finally {
         connectLoading.value = false;
     }
@@ -251,30 +267,30 @@ async function connectProxy() {
 
 async function changePassword() {
     passwordLoading.value = true;
-    message.value = "";
-    error.value = "";
 
     try {
-        const response = await apiClient.post(
+        const res = await apiClient.post(
             "/change-password/",
             passwordForm,
         );
 
-        message.value = response.data.message;
-
-        passwordForm.old_password = "";
-        passwordForm.new_password = "";
-        passwordForm.new_password_confirm = "";
+        message.value = res.data.message;
+        Object.keys(passwordForm).forEach((k) => (passwordForm[k] = ""));
     } catch (err) {
-        error.value =
-            err.response?.data?.detail ||
-            "Не удалось изменить пароль.";
+        error.value = err.response?.data?.detail;
     } finally {
         passwordLoading.value = false;
     }
 }
 
-onMounted(loadProfile);
+onMounted(() => {
+    loadProfile();
+    connectWebSocket();
+});
+
+onBeforeUnmount(() => {
+    if (socket.value) socket.value.close();
+});
 </script>
 
 <style scoped>
@@ -305,6 +321,5 @@ onMounted(loadProfile);
     border-radius: 18px;
     background: #f0fdff;
     border: 1px solid #a5f3fc;
-    box-shadow: 0 4px 12px rgba(0, 188, 212, 0.08);
 }
 </style>

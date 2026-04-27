@@ -3,11 +3,12 @@ from django.utils import timezone
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
 
 from vms.models import VirtualMachine
+from vms.services import send_connection_status
 from .models import User
 from .serializers import (
     ActivateKeySuccessSerializer,
@@ -15,6 +16,7 @@ from .serializers import (
     ChangePasswordSerializer,
     ErrorResponseSerializer,
     LoginSerializer,
+    MessageResponseSerializer,
     ProfileSerializer,
     RegisterSerializer,
 )
@@ -29,6 +31,7 @@ class RegisterView(APIView):
         request=RegisterSerializer,
         responses={
             201: OpenApiResponse(
+                response=MessageResponseSerializer,
                 description="Пользователь успешно зарегистрирован.",
             ),
             400: OpenApiResponse(
@@ -112,18 +115,27 @@ class ActivateKeyView(APIView):
         ).first()
 
         if existing_vm:
+            proxy_data = {
+                "host": existing_vm.host,
+                "port": existing_vm.port,
+                "protocol": existing_vm.protocol,
+            }
+
             user.activation_key = None
             user.activation_key_expires = None
             user.save()
 
+            send_connection_status(
+                user.id,
+                "connected",
+                "Прокси уже назначен.",
+                proxy_data,
+            )
+
             return Response(
                 {
                     "message": "Прокси уже назначен.",
-                    "proxy": {
-                        "host": existing_vm.host,
-                        "port": existing_vm.port,
-                        "protocol": existing_vm.protocol,
-                    },
+                    "proxy": proxy_data,
                 },
                 status=status.HTTP_200_OK,
             )
@@ -134,6 +146,12 @@ class ActivateKeyView(APIView):
         ).first()
 
         if vm is None:
+            send_connection_status(
+                user.id,
+                "no_free_vms",
+                "Все прокси заняты.",
+            )
+
             return Response(
                 {"detail": "Все прокси заняты."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -143,18 +161,27 @@ class ActivateKeyView(APIView):
         vm.last_used_at = timezone.now()
         vm.save()
 
+        proxy_data = {
+            "host": vm.host,
+            "port": vm.port,
+            "protocol": vm.protocol,
+        }
+
         user.activation_key = None
         user.activation_key_expires = None
         user.save()
 
+        send_connection_status(
+            user.id,
+            "connected",
+            "Подключение выполнено успешно.",
+            proxy_data,
+        )
+
         return Response(
             {
                 "message": "Подключение выполнено успешно.",
-                "proxy": {
-                    "host": vm.host,
-                    "port": vm.port,
-                    "protocol": vm.protocol,
-                },
+                "proxy": proxy_data,
             },
             status=status.HTTP_200_OK,
         )
@@ -168,6 +195,7 @@ class LoginView(APIView):
         request=LoginSerializer,
         responses={
             200: OpenApiResponse(
+                response=MessageResponseSerializer,
                 description="Вход выполнен успешно.",
             ),
             400: OpenApiResponse(
@@ -206,8 +234,12 @@ class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
+        request=None,
         responses={
-            200: ProfileSerializer,
+            200: OpenApiResponse(
+                response=ProfileSerializer,
+                description="Данные текущего пользователя.",
+            ),
         },
     )
     def get(self, request):
@@ -223,8 +255,10 @@ class RefreshKeyView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
+        request=None,
         responses={
             200: OpenApiResponse(
+                response=MessageResponseSerializer,
                 description="Новый ключ отправлен на почту.",
             ),
         },
@@ -254,6 +288,7 @@ class ChangePasswordView(APIView):
         request=ChangePasswordSerializer,
         responses={
             200: OpenApiResponse(
+                response=MessageResponseSerializer,
                 description="Пароль успешно изменён.",
             ),
             400: OpenApiResponse(

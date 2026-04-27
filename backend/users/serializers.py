@@ -24,6 +24,10 @@ class ErrorResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
 
 
+class MessageResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+
+
 class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
