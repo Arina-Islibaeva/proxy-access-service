@@ -8,3 +8,6 @@ channels[daphne]
 celery
 redis
 channels_redis
+pytest
+pytest-django
+pytest-mock
