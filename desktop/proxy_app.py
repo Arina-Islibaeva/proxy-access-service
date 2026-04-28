@@ -24,7 +24,10 @@ FONT = "Segoe UI"
 
 
 class ProxyApp:
+    """Desktop-приложение для подключения к прокси по ключу активации."""
+
     def __init__(self):
+        """Инициализация окна приложения и запуск WebSocket."""
         self.root = ctk.CTk()
         self.root.title("Proxy Access Service")
         self.root.geometry("760x620")
@@ -32,18 +35,26 @@ class ProxyApp:
         self.root.resizable(False, False)
         self.root.iconbitmap("icon.ico")
 
+        # Объекты WebSocket-соединения
         self.ws_app = None
         self.ws_thread = None
 
+        # Текстовые переменные для обновления интерфейса
         self.status_text = ctk.StringVar(value="Ожидание ключа")
         self.proxy_text = ctk.StringVar(value="Прокси пока не назначен")
 
         self.build_ui()
         self.root.protocol("WM_DELETE_WINDOW", self.close_app)
+
+        # Запускаем WebSocket для получения статуса в реальном времени
         self.start_websocket()
+
         self.root.mainloop()
 
     def build_ui(self):
+        """Создает интерфейс desktop-прилжения."""
+
+        # Основная белая карточка
         card = ctk.CTkFrame(
             self.root,
             width=530,
@@ -80,6 +91,7 @@ class ProxyApp:
         )
         key_label.pack(anchor="w", padx=45)
 
+        # Поле ввода ключа
         self.key_entry = ctk.CTkEntry(
             card,
             width=470,
@@ -109,6 +121,7 @@ class ProxyApp:
         )
         connect_button.pack(pady=(0, 22))
 
+        # Блок статуса подключения
         status_block = ctk.CTkFrame(
             card,
             width=470,
@@ -137,6 +150,7 @@ class ProxyApp:
         )
         status_value.pack(anchor="w", padx=18)
 
+        # Блок данных назначенного прокси
         proxy_block = ctk.CTkFrame(
             card,
             width=470,
@@ -167,6 +181,7 @@ class ProxyApp:
         proxy_value.pack(anchor="w", padx=18)
 
     def start_websocket(self):
+        """Запускает WebSocket-соединение в отдельном потоке."""
         self.ws_app = websocket.WebSocketApp(
             WS_URL,
             on_message=self.on_ws_message,
@@ -181,11 +196,13 @@ class ProxyApp:
         self.ws_thread.start()
 
     def on_ws_message(self, ws, message):
+        """Обрабатывает входящие сообщения от WebSocket."""
         data = json.loads(message)
 
         status = data.get("status")
         proxy = data.get("proxy")
 
+        # Перевод технических статусов в понятный текст
         status_map = {
             "connected": "Подключено",
             "disconnected": "Отключено",
@@ -214,18 +231,21 @@ class ProxyApp:
             )
 
     def on_ws_error(self, ws, error):
+        """Обрабатывает ошибку WebSocket-соединения."""
         self.root.after(
             0,
             lambda: self.status_text.set("Ошибка WebSocket-соединения."),
         )
 
     def on_ws_close(self, ws, close_status_code, close_msg):
+        """Обрабатывает закрытие WebSocket-соединения."""
         self.root.after(
             0,
             lambda: self.status_text.set("Отключено"),
         )
 
     def connect_proxy(self):
+        """Отправляет ключ активации на backend для подключения."""
         activation_key = self.key_entry.get().strip()
 
         if not activation_key:
@@ -287,6 +307,7 @@ class ProxyApp:
             )
 
     def close_app(self):
+        """Корректно закрывает приложение и WebSocket."""
         if self.ws_app:
             self.ws_app.close()
 

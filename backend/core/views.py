@@ -5,10 +5,13 @@ from rest_framework.views import APIView
 
 
 class HealthCheckSerializer(serializers.Serializer):
+    """Сериализатор ответа для проверки состояния API."""
     status = serializers.CharField()
 
 
 class HealthCheckView(APIView):
+    """Проверка доступности API."""
+
     authentication_classes = []
     permission_classes = []
 

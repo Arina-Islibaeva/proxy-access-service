@@ -91,6 +91,7 @@ const message = ref("");
 const error = ref("");
 const showPassword = ref(false);
 
+// Выполняет вход пользователя и переход в личный кабинет
 async function loginUser() {
     loading.value = true;
     message.value = "";

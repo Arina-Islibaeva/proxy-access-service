@@ -1,10 +1,14 @@
 from celery import shared_task
-from django.core.mail import send_mail
 from django.conf import settings
+from django.core.mail import send_mail
 
 
 @shared_task
 def send_activation_key_email(email, activation_key):
+    """
+    Отправляет письмо с ключом активации
+    на электронную почту пользователя.
+    """
     subject = "Ваш ключ активации"
     message = (
         "Здравствуйте!\n\n"

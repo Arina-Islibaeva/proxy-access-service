@@ -2,7 +2,10 @@ from django.contrib.auth.base_user import BaseUserManager
 
 
 class UserManager(BaseUserManager):
+    """Менеджер модели пользователя."""
+
     def create_user(self, email, password=None, **extra_fields):
+        """Создает обычного пользователя с email и паролем."""
         if not email:
             raise ValueError("Email must be set")
 
@@ -13,6 +16,8 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
+        """Создает суперпользователя с правами администратора."""
+
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)

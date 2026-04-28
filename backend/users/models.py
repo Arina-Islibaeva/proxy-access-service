@@ -9,6 +9,8 @@ from .managers import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    """Модель пользователя системы."""
+
     email = models.EmailField(unique=True)
 
     is_active = models.BooleanField(default=False)
@@ -33,6 +35,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
 
     def generate_activation_key(self):
+        """
+        Генерирует одноразовый ключ активации
+        со сроком действия 24 часа.
+        """
         self.activation_key = secrets.token_hex(16)
         self.activation_key_expires = (
             timezone.now() + timedelta(hours=24)

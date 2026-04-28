@@ -5,6 +5,7 @@ const apiClient = axios.create({
     withCredentials: true,
 });
 
+// Получает значение cookie по имени
 function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -15,6 +16,7 @@ function getCookie(name) {
     return null;
 }
 
+// Добавляем CSRF-токен в заголовки перед каждым запросом
 apiClient.interceptors.request.use((config) => {
     const csrfToken = getCookie("csrftoken");
 

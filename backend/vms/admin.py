@@ -5,6 +5,8 @@ from .models import VirtualMachine
 
 @admin.register(VirtualMachine)
 class VirtualMachineAdmin(admin.ModelAdmin):
+    """Настройки отображения виртуальных машин в админ-панели."""
+
     list_display = (
         "name",
         "host",

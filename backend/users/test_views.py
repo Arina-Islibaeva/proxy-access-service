@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
 import pytest
-from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -14,21 +13,25 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def api_client():
+    """Возвращает клиент для тестирования API."""
     return APIClient()
 
 
 @pytest.fixture
 def user():
+    """Создает пользователя с ключом активации."""
     user = User.objects.create_user(
         email="user@example.com",
         password="password123",
     )
     user.generate_activation_key()
+
     return user
 
 
 @pytest.fixture
 def active_vm():
+    """Создает активную свободную виртуальную машину."""
     return VirtualMachine.objects.create(
         name="proxy-1",
         host="192.168.1.10",
@@ -39,6 +42,7 @@ def active_vm():
 
 
 def test_register_creates_user_and_activation_key(api_client, mocker):
+    """Проверяет регистрацию пользователя и генерацию ключа."""
     mock_task = mocker.patch(
         "users.views.send_activation_key_email.delay",
     )
@@ -67,6 +71,7 @@ def test_register_creates_user_and_activation_key(api_client, mocker):
 
 
 def test_login_success(api_client, user):
+    """Проверяет успешный вход пользователя."""
     response = api_client.post(
         "/api/login/",
         {
@@ -81,12 +86,14 @@ def test_login_success(api_client, user):
 
 
 def test_profile_requires_authentication(api_client):
+    """Проверяет запрет доступа к профилю без авторизации."""
     response = api_client.get("/api/profile/")
 
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_profile_returns_current_user_data(api_client, user):
+    """Проверяет получение данных текущего пользователя."""
     api_client.force_authenticate(user=user)
 
     response = api_client.get("/api/profile/")
@@ -97,6 +104,7 @@ def test_profile_returns_current_user_data(api_client, user):
 
 
 def test_refresh_key_generates_new_key(api_client, user, mocker):
+    """Проверяет обновление ключа активации."""
     mock_task = mocker.patch(
         "users.views.send_activation_key_email.delay",
     )
@@ -120,6 +128,7 @@ def test_refresh_key_generates_new_key(api_client, user, mocker):
 
 
 def test_activate_key_assigns_free_vm(api_client, user, active_vm, mocker):
+    """Проверяет назначение свободной виртуальной машины."""
     mocker.patch("users.views.send_connection_status")
 
     response = api_client.post(
@@ -147,6 +156,7 @@ def test_activate_key_assigns_free_vm(api_client, user, active_vm, mocker):
 
 
 def test_activate_key_returns_error_when_key_is_invalid(api_client):
+    """Проверяет ошибку при неверном ключе активации."""
     response = api_client.post(
         "/api/activate-key/",
         {
@@ -160,6 +170,7 @@ def test_activate_key_returns_error_when_key_is_invalid(api_client):
 
 
 def test_activate_key_returns_error_when_key_is_expired(api_client, user):
+    """Проверяет ошибку при истекшем ключе активации."""
     user.activation_key_expires = timezone.now() - timezone.timedelta(hours=1)
     user.save()
 
@@ -180,6 +191,7 @@ def test_activate_key_returns_error_when_all_vms_are_busy(
     user,
     mocker,
 ):
+    """Проверяет ошибку, если все виртуальные машины заняты."""
     mocker.patch("users.views.send_connection_status")
 
     VirtualMachine.objects.create(
@@ -207,6 +219,7 @@ def test_activate_key_returns_error_when_all_vms_are_busy(
 
 
 def test_change_password_success(api_client, user):
+    """Проверяет успешную смену пароля."""
     api_client.force_authenticate(user=user)
 
     response = api_client.post(

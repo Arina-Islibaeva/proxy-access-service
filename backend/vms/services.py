@@ -3,6 +3,7 @@ from channels.layers import get_channel_layer
 
 
 def send_connection_status(user_id, status, message, proxy=None):
+    """Отправляет пользователю обновление статуса через WebSocket."""
     channel_layer = get_channel_layer()
 
     if channel_layer is None:

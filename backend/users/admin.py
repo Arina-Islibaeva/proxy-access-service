@@ -5,5 +5,7 @@ from .models import User
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
+    """Настройки отображения модели пользователя в админ-панели."""
+
     list_display = ("email", "is_active", "is_staff")
     search_fields = ("email",)

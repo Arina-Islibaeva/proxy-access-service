@@ -9,21 +9,13 @@
                 Управление ключом доступа и паролем
             </v-card-subtitle>
 
-            <v-alert v-if="message" type="success" variant="tonal" class="mb-4">
-                {{ message }}
-            </v-alert>
-
-            <v-alert v-if="error" type="error" variant="tonal" class="mb-4">
-                {{ error }}
-            </v-alert>
-
             <v-alert
-                v-if="connectionStatus"
-                :type="connectionStatusType"
+                v-if="alertText"
+                :type="alertType"
                 variant="tonal"
                 class="mb-4"
             >
-                {{ connectionStatus }}
+                {{ alertText }}
             </v-alert>
 
             <v-list class="mb-4">
@@ -79,7 +71,6 @@
                 Обновить ключ
             </v-btn>
 
-            <!-- СКРЫВАЕМ если уже подключен -->
             <v-btn
                 v-if="socketStatus !== 'connected'"
                 color="primary"
@@ -207,6 +198,18 @@ const connectionStatusType = computed(() => {
     return "info";
 });
 
+const alertText = computed(() => {
+    if (error.value) return error.value;
+    if (connectionStatus.value) return connectionStatus.value;
+    return message.value;
+});
+
+const alertType = computed(() => {
+    if (error.value) return "error";
+    if (connectionStatus.value) return connectionStatusType.value;
+    return "success";
+});
+
 async function loadProfile() {
     try {
         const response = await apiClient.get("/profile/");
@@ -223,17 +226,27 @@ function connectWebSocket() {
 
     socket.value.onmessage = (event) => {
         const data = JSON.parse(event.data);
+
+        error.value = "";
+        message.value = "";
+
         socketStatus.value = data.status;
         connectionStatus.value = data.message;
+
         if (data.proxy) proxy.value = data.proxy;
     };
 }
 
 async function refreshKey() {
     refreshLoading.value = true;
+
     try {
+        error.value = "";
+        connectionStatus.value = "";
+
         const res = await apiClient.post("/refresh-key/");
         message.value = res.data.message;
+
         await loadProfile();
     } finally {
         refreshLoading.value = false;
@@ -250,6 +263,10 @@ async function connectProxy() {
     }
 
     try {
+        error.value = "";
+        message.value = "";
+        connectionStatus.value = "";
+
         const res = await apiClient.post("/activate-key/", {
             activation_key: profile.activation_key,
         });
@@ -266,13 +283,16 @@ async function connectProxy() {
         }
     } finally {
         connectLoading.value = false;
-    }   
+    }
 }
 
 async function changePassword() {
     passwordLoading.value = true;
 
     try {
+        error.value = "";
+        connectionStatus.value = "";
+
         const res = await apiClient.post(
             "/change-password/",
             passwordForm,

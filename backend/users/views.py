@@ -24,6 +24,8 @@ from .tasks import send_activation_key_email
 
 
 class RegisterView(APIView):
+    """Регистрация пользователя и отправка ключа активации."""
+
     authentication_classes = []
     permission_classes = []
 
@@ -41,6 +43,7 @@ class RegisterView(APIView):
         },
     )
     def post(self, request):
+        """Создает пользователя и отправляет ключ активации на email."""
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -64,6 +67,8 @@ class RegisterView(APIView):
 
 
 class ActivateKeyView(APIView):
+    """Активация ключа и назначение свободной виртуальной машины."""
+
     authentication_classes = []
     permission_classes = []
 
@@ -87,6 +92,7 @@ class ActivateKeyView(APIView):
         },
     )
     def post(self, request):
+        """Проверяет ключ и возвращает данные назначенного прокси."""
         serializer = ActivationKeySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -188,6 +194,8 @@ class ActivateKeyView(APIView):
 
 
 class LoginView(APIView):
+    """Вход пользователя в систему."""
+
     authentication_classes = []
     permission_classes = []
 
@@ -205,6 +213,7 @@ class LoginView(APIView):
         },
     )
     def post(self, request):
+        """Аутентифицирует пользователя по email и паролю."""
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -231,6 +240,8 @@ class LoginView(APIView):
 
 
 class ProfileView(APIView):
+    """Личный кабинет пользователя."""
+
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
@@ -243,6 +254,7 @@ class ProfileView(APIView):
         },
     )
     def get(self, request):
+        """Возвращает данные текущего пользователя."""
         serializer = ProfileSerializer(request.user)
 
         return Response(
@@ -252,6 +264,8 @@ class ProfileView(APIView):
 
 
 class RefreshKeyView(APIView):
+    """Обновление ключа активации."""
+
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
@@ -264,6 +278,7 @@ class RefreshKeyView(APIView):
         },
     )
     def post(self, request):
+        """Генерирует новый ключ и отправляет его на email."""
         user = request.user
 
         user.generate_activation_key()
@@ -282,6 +297,8 @@ class RefreshKeyView(APIView):
 
 
 class ChangePasswordView(APIView):
+    """Смена пароля пользователя."""
+
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
@@ -298,6 +315,7 @@ class ChangePasswordView(APIView):
         },
     )
     def post(self, request):
+        """Проверяет старый пароль и сохраняет новый."""
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

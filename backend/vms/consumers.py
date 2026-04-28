@@ -5,7 +5,10 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 
 class ConnectionStatusConsumer(AsyncWebsocketConsumer):
+    """WebSocket consumer для отслеживания статуса подключения."""
+
     async def connect(self):
+        """Подключает пользователя к каналу обновления статуса."""
         user = self.scope["user"]
 
         await self.accept()
@@ -52,6 +55,7 @@ class ConnectionStatusConsumer(AsyncWebsocketConsumer):
             )
 
     async def disconnect(self, close_code):
+        """Удаляет пользователя из группы при отключении."""
         if hasattr(self, "group_name"):
             await self.channel_layer.group_discard(
                 self.group_name,
@@ -59,6 +63,7 @@ class ConnectionStatusConsumer(AsyncWebsocketConsumer):
             )
 
     async def connection_status(self, event):
+        """Отправляет обновление статуса подключения."""
         await self.send(
             text_data=json.dumps(
                 {
@@ -71,6 +76,7 @@ class ConnectionStatusConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_user_proxy(self, user_id):
+        """Возвращает данные назначенного пользователю прокси."""
         from .models import VirtualMachine
 
         vm = VirtualMachine.objects.filter(

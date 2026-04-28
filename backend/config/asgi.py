@@ -9,8 +9,12 @@ import vms.routing
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
+# Базовое ASGI-приложение Django
 django_asgi_app = get_asgi_application()
 
+# Основное ASGI-приложение:
+# HTTP-запросы -> Django
+# WebSocket-соединения -> Channels + аутентификация
 application = ProtocolTypeRouter(
     {
         "http": django_asgi_app,
