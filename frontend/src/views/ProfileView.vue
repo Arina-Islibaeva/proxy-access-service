@@ -259,10 +259,14 @@ async function connectProxy() {
 
         await loadProfile();
     } catch (err) {
-        error.value = err.response?.data?.detail;
+        if (err.response?.status !== 503) {
+            error.value =
+                err.response?.data?.detail ||
+                "Не удалось подключиться к прокси.";
+        }
     } finally {
         connectLoading.value = false;
-    }
+    }   
 }
 
 async function changePassword() {
